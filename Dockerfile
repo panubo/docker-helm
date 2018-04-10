@@ -1,16 +1,16 @@
 FROM alpine:3.7
 
 ENV \
-  HELM_VERSION=v2.8.2 \
+  HELM_VERSION=2.8.2 \
   HELM_CHECKSUM=614b5ac79de4336b37c9b26d528c6f2b94ee6ccacb94b0f4b8d9583a8dd122d3
 
 # Install helm
 RUN set -x \
   && apk --no-cache add curl ca-certificates git make bash \
-  && curl -o /tmp/helm-${HELM_VERSION}-linux-amd64.tar.gz -L https://kubernetes-helm.storage.googleapis.com/helm-${HELM_VERSION}-linux-amd64.tar.gz \
-  && echo "${HELM_CHECKSUM}  helm-${HELM_VERSION}-linux-amd64.tar.gz" > /tmp/SHA256SUM \
+  && curl -o /tmp/helm-v${HELM_VERSION}-linux-amd64.tar.gz -L https://kubernetes-helm.storage.googleapis.com/helm-v${HELM_VERSION}-linux-amd64.tar.gz \
+  && echo "${HELM_CHECKSUM}  helm-v${HELM_VERSION}-linux-amd64.tar.gz" > /tmp/SHA256SUM \
   && ( cd /tmp; sha256sum -c SHA256SUM; ) \
-  && tar -C /tmp -zxvf /tmp/helm-${HELM_VERSION}-linux-amd64.tar.gz \
+  && tar -C /tmp -zxvf /tmp/helm-v${HELM_VERSION}-linux-amd64.tar.gz \
   && cp /tmp/linux-amd64/helm /usr/local/bin/helm \
   && rm -rf /tmp/* \
   ;
@@ -30,8 +30,27 @@ RUN set -x \
   && mkdir -p /opt/helm-s3 \
   && tar -C /opt/helm-s3 -zxvf /tmp/helm-s3_${HELM_S3_VERSION}_linux_amd64.tar.gz \
   && rm -rf /tmp/* \
+  && printf "install:\n\ttrue\n" > /opt/helm-s3/Makefile \
   ;
-COPY helm-s3-Makefile /opt/helm-s3/Makefile
+
+# Install helm-gcs - tar.gz release doesn't include plugin.yaml or pull.sh so they are downloaded later but NOT checksummed
+ENV \
+  HELM_GCS_VERSION=0.1.4 \
+  HELM_GCS_CHECKSUM=b1c7c0b8864449ed172a42f72824af884f893e1edb7f6fefdee2380d1aca2c3f
+
+RUN set -x \
+  && curl -o /tmp/helm-gcs_${HELM_GCS_VERSION}_Linux_x86_64.tar.gz -L https://github.com/nouney/helm-gcs/releases/download/${HELM_GCS_VERSION}/helm-gcs_${HELM_GCS_VERSION}_Linux_x86_64.tar.gz \
+  && echo "${HELM_GCS_CHECKSUM}  helm-gcs_${HELM_GCS_VERSION}_Linux_x86_64.tar.gz" > /tmp/SHA256SUM \
+  && ( cd /tmp; sha256sum -c SHA256SUM; ) \
+  && mkdir -p /opt/helm-gcs/bin \
+  && curl -o /opt/helm-gcs/plugin.yaml -L https://github.com/nouney/helm-gcs/raw/${HELM_GCS_VERSION}/plugin.yaml \
+  && curl -o /opt/helm-gcs/pull.sh -L https://github.com/nouney/helm-gcs/raw/${HELM_GCS_VERSION}/pull.sh \
+  && tar -C /opt/helm-gcs/bin -zxvf /tmp/helm-gcs_${HELM_GCS_VERSION}_Linux_x86_64.tar.gz helm-gcs \
+  && rm -rf /tmp/* \
+  && printf "#!/bin/sh\ntrue\n" > /opt/helm-gcs/install.sh \
+  && chmod +x /opt/helm-gcs/pull.sh /opt/helm-gcs/install.sh \
+  ;
+
 COPY entry.sh /entry.sh
 ENTRYPOINT ["/entry.sh"]
 CMD ["/bin/sh"]

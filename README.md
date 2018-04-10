@@ -8,3 +8,4 @@ This Docker image contains [Helm](https://github.com/kubernetes/helm) and some H
 ## Plugins
 
 * [Helm S3](https://github.com/hypnoglow/helm-s3)
+* [Helm GCS](https://github.com/nouney/helm-gcs)

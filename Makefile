@@ -15,6 +15,9 @@ bash-aws:
 	docker run --rm -it -e AWS_DEFAULT_REGION=$(AWS_DEFAULT_REGION) --env-file ./make.env ${IMAGE_NAME}:${TAG}
 	-rm ./make.env
 
+bash-gcs:
+	docker run --rm -it -v $(HOME)/.config/gcloud/application_default_credentials.json:/application_default_credentials.json -e GOOGLE_APPLICATION_CREDENTIALS=/application_default_credentials.json ${IMAGE_NAME}:${TAG}
+
 push:
 	docker tag ${IMAGE_NAME}:${TAG} ${REGISTRY}/${IMAGE_NAME}:${TAG}
 	docker push ${REGISTRY}/${IMAGE_NAME}:${TAG}
